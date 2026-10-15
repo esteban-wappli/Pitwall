@@ -37,3 +37,32 @@ def test_missing_column_raises(tmp_path):
 
     with pytest.raises(InvalidLapDataError, match="speed_kmh"):
         load_laps(path)
+
+
+HEADER = "lap_number,time_s,distance_m,speed_kmh\n"
+
+
+def test_integer_columns_become_float(tmp_path):
+    path = tmp_path / "ints.csv"
+    path.write_text(HEADER + "1,0,0,100\n1,10,500,200\n")
+
+    df = load_laps(path)
+
+    for col in ["time_s", "distance_m", "speed_kmh"]:
+        assert df[col].dtype == float
+
+
+def test_empty_cell_raises_with_line(tmp_path):
+    path = tmp_path / "empty_cell.csv"
+    path.write_text(HEADER + "1,0,0,100\n1,10,500,\n")
+
+    with pytest.raises(InvalidLapDataError, match=r"manquante.*speed_kmh.*ligne\(s\) 3\b"):
+        load_laps(path)
+
+
+def test_text_value_raises_with_line(tmp_path):
+    path = tmp_path / "text.csv"
+    path.write_text(HEADER + "1,0,0,100\n1,10,500,200\n1,20,900,rapide\n")
+
+    with pytest.raises(InvalidLapDataError, match=r"non numérique.*speed_kmh.*ligne\(s\) 4\b"):
+        load_laps(path)
